@@ -10,21 +10,16 @@ use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     public function index(Request $request)
     {
         $query = Auth::user()->orders();
         
         if ($request->filled('status')) {
             $status = $request->status;
-            if (in_array($status, ['pending', 'paid', 'cancelled'])) {
+            if (in_array($status, ['unpaid', 'paid'])) {
                 $query->where('payment_status', $status);
             } elseif (in_array($status, ['pending', 'shipped', 'delivered'])) {
-                $query->where('shipping_status', $status);
+                $query->where('delivery_status', $status);
             }
         }
 
@@ -58,31 +53,30 @@ class OrderController extends Controller
             'payment_method' => 'required|in:transfer,cash',
         ]);
 
-        $subtotal = $cartItems->sum(function ($item) {
+        $totalPrice = $cartItems->sum(function ($item) {
             return $item->book->price * $item->quantity;
         });
-
-        $shipping = 25000;
-        $totalAmount = $subtotal + $shipping;
 
         $order = Order::create([
             'user_id' => $user->id,
             'order_number' => 'ORD-' . strtoupper(Str::random(10)),
-            'total_amount' => $totalAmount,
-            'shipping_cost' => $shipping,
-            'payment_status' => 'pending',
-            'shipping_status' => 'pending',
+            'total_price' => $totalPrice,
+            'payment_status' => 'unpaid',
+            'delivery_status' => 'pending',
             'payment_method' => $validated['payment_method'],
             'delivery_address' => $validated['delivery_address'],
             'paid_at' => null,
         ]);
 
         foreach ($cartItems as $cartItem) {
+            $subtotal = $cartItem->book->price * $cartItem->quantity;
+            
             OrderItem::create([
                 'order_id' => $order->id,
                 'book_id' => $cartItem->book_id,
                 'quantity' => $cartItem->quantity,
                 'price' => $cartItem->book->price,
+                'subtotal' => $subtotal,
             ]);
 
             $cartItem->book->decrement('stock', $cartItem->quantity);
@@ -103,10 +97,6 @@ class OrderController extends Controller
             return redirect()->back()->with('error', 'Pesanan sudah dibayar.');
         }
 
-        if ($order->payment_status === 'cancelled') {
-            return redirect()->back()->with('error', 'Pesanan yang dibatalkan tidak bisa dibayar.');
-        }
-
         $order->payment_status = 'paid';
         $order->paid_at = now();
         $order->save();
@@ -120,19 +110,19 @@ class OrderController extends Controller
             abort(403);
         }
 
-        if ($order->payment_status === 'cancelled') {
-            return redirect()->back()->with('error', 'Pesanan sudah dibatalkan sebelumnya.');
+        if ($order->payment_status === 'paid') {
+            return redirect()->back()->with('error', 'Pesanan yang sudah dibayar tidak bisa dibatalkan.');
         }
 
-        if ($order->shipping_status === 'delivered') {
+        if ($order->delivery_status === 'delivered') {
             return redirect()->back()->with('error', 'Pesanan yang sudah diterima tidak bisa dibatalkan.');
         }
 
-        if ($order->shipping_status === 'shipped') {
+        if ($order->delivery_status === 'shipped') {
             return redirect()->back()->with('error', 'Pesanan yang sudah dikirim tidak bisa dibatalkan.');
         }
 
-        $order->payment_status = 'cancelled';
+        $order->status = 'cancelled';
         $order->save();
 
         foreach ($order->orderItems as $item) {

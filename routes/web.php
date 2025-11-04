@@ -56,7 +56,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
         $totalOrders = \App\Models\Order::count();
         $pendingMessages = \App\Models\Message::whereNull('admin_reply')->count();
         $ordersThisMonth = \App\Models\Order::whereMonth('created_at', now()->month)->count();
-        $totalRevenue = \App\Models\Order::where('payment_status', 'paid')->sum('total_amount');
+        $totalRevenue = \App\Models\Order::where('payment_status', 'paid')->sum('total_price');
         $availableStock = \App\Models\Book::where('stock', '>', 0)->count();
         $lowStock = \App\Models\Book::where('stock', '>', 0)->where('stock', '<=', 5)->count();
         $recentOrders = \App\Models\Order::with('user')->latest()->limit(5)->get();

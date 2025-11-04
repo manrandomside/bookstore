@@ -37,17 +37,13 @@
                         <div class="col-md-6 mb-3">
                             <strong style="color: #2a4a54;">Status Pembayaran</strong>
                             <div class="mt-3">
-                                @if($order->payment_status === 'pending')
+                                @if($order->payment_status === 'unpaid')
                                     <span class="badge bg-warning" style="padding: 10px 15px; font-size: 0.95rem;">
-                                        <i class="fas fa-hourglass-half"></i> Menunggu Pembayaran
+                                        <i class="fas fa-hourglass-half"></i> Belum Dibayar
                                     </span>
                                 @elseif($order->payment_status === 'paid')
                                     <span class="badge bg-success" style="padding: 10px 15px; font-size: 0.95rem;">
                                         <i class="fas fa-check-circle"></i> Sudah Dibayar
-                                    </span>
-                                @elseif($order->payment_status === 'cancelled')
-                                    <span class="badge bg-danger" style="padding: 10px 15px; font-size: 0.95rem;">
-                                        <i class="fas fa-times-circle"></i> Dibatalkan
                                     </span>
                                 @endif
                             </div>
@@ -57,15 +53,15 @@
                         <div class="col-md-6 mb-3">
                             <strong style="color: #2a4a54;">Status Pengiriman</strong>
                             <div class="mt-3">
-                                @if($order->shipping_status === 'pending')
+                                @if($order->delivery_status === 'pending')
                                     <span class="badge bg-secondary" style="padding: 10px 15px; font-size: 0.95rem;">
                                         <i class="fas fa-hourglass-start"></i> Diproses
                                     </span>
-                                @elseif($order->shipping_status === 'shipped')
+                                @elseif($order->delivery_status === 'shipped')
                                     <span class="badge bg-info" style="padding: 10px 15px; font-size: 0.95rem;">
                                         <i class="fas fa-truck"></i> Dalam Pengiriman
                                     </span>
-                                @elseif($order->shipping_status === 'delivered')
+                                @elseif($order->delivery_status === 'delivered')
                                     <span class="badge bg-success" style="padding: 10px 15px; font-size: 0.95rem;">
                                         <i class="fas fa-box"></i> Terima
                                     </span>
@@ -99,30 +95,26 @@
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                @php
-    $orderBookImage = strtolower(str_replace(' ', '_', $item->book->title));
-    $orderImagePath = file_exists(public_path("books/{$orderBookImage}.jpg")) 
-        ? "/books/{$orderBookImage}.jpg" 
-        : (file_exists(public_path("books/{$orderBookImage}.jpeg")) 
-            ? "/books/{$orderBookImage}.jpeg" 
-            : null);
-@endphp
-
-@if($orderImagePath)
-    <img src="{{ $orderImagePath }}"
-                                                    <img src="/books/{{ strtolower(str_replace(' ', '_', $item->book->title)) }}.jpg" alt="{{ $item->book->title }}" style="width: 50px; height: 70px; object-fit: contain; margin-right: 15px; background-color: #f8f9fa; padding: 3px;">
-                                                @else
-                                                    <div style="width: 50px; height: 70px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                        <i class="fas fa-book" style="color: #adb5bd;"></i>
-                                                    </div>
-                                                @endif
+                                                <div class="me-3" style="width: 50px;">
+                                                    @php
+                                                        $bookImage = strtolower(str_replace(' ', '_', $item->book->title));
+                                                        $imagePath = file_exists(public_path("books/{$bookImage}.jpg")) 
+                                                            ? "/books/{$bookImage}.jpg" 
+                                                            : (file_exists(public_path("books/{$bookImage}.jpeg")) 
+                                                                ? "/books/{$bookImage}.jpeg" 
+                                                                : null);
+                                                    @endphp
+                                                    @if($imagePath)
+                                                        <img src="{{ $imagePath }}" alt="{{ $item->book->title }}" class="img-fluid" style="border-radius: 4px;">
+                                                    @else
+                                                        <div style="width: 50px; height: 70px; background-color: #e9ecef; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="fas fa-book" style="color: #adb5bd;"></i>
+                                                        </div>
+                                                    @endif
+                                                </div>
                                                 <div>
-                                                    <h6 class="mb-1" style="color: #2a4a54;">
-                                                        <a href="{{ route('books.show', $item->book->id) }}" style="text-decoration: none; color: inherit;">
-                                                            {{ $item->book->title }}
-                                                        </a>
-                                                    </h6>
-                                                    <small class="text-muted">{{ $item->book->author }}</small>
+                                                    <strong style="color: #2a4a54;">{{ $item->book->title }}</strong>
+                                                    <small class="d-block text-muted">{{ $item->book->author }}</small>
                                                 </div>
                                             </div>
                                         </td>
@@ -136,7 +128,7 @@
                                         </td>
                                         <td class="text-end">
                                             <strong style="color: #335c67;">
-                                                Rp {{ number_format($item->price * $item->quantity, 0, ',', '.') }}
+                                                Rp {{ number_format($item->subtotal, 0, ',', '.') }}
                                             </strong>
                                         </td>
                                     </tr>
@@ -186,23 +178,10 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Subtotal:</span>
-                            <strong style="color: #335c67;">
-                                Rp {{ number_format($order->total_amount - $order->shipping_cost, 0, ',', '.') }}
-                            </strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-3">
-                            <span class="text-muted">Ongkir:</span>
-                            <strong style="color: #335c67;">
-                                Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}
-                            </strong>
-                        </div>
-                        <hr>
                         <div class="d-flex justify-content-between">
-                            <span class="fw-bold" style="color: #2a4a54;">Total:</span>
-                            <span class="fw-bold" style="color: #335c67; font-size: 1.2rem;">
-                                Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                            <span class="fw-bold" style="color: #2a4a54;">Total Pembayaran:</span>
+                            <span class="fw-bold" style="color: #335c67; font-size: 1.3rem;">
+                                Rp {{ number_format($order->total_price, 0, ',', '.') }}
                             </span>
                         </div>
                     </div>
@@ -226,29 +205,27 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        @if($order->payment_status === 'pending')
+                        @if($order->payment_status === 'unpaid')
                             <form action="{{ route('orders.paid', $order->id) }}" method="POST">
                                 @csrf
                                 @method('PUT')
-                                <button type="submit" class="btn btn-success btn-sm fw-bold">
+                                <button type="submit" class="btn btn-success w-100 fw-bold">
                                     <i class="fas fa-money-bill-wave"></i> Konfirmasi Pembayaran
                                 </button>
                             </form>
                         @endif
 
-                        @if($order->payment_status === 'pending' || $order->payment_status === 'paid')
-                            @if($order->shipping_status !== 'shipped' && $order->shipping_status !== 'delivered')
-                                <form action="{{ route('orders.cancel', $order->id) }}" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm fw-bold" onclick="return confirm('Yakin ingin membatalkan pesanan ini?')">
-                                        <i class="fas fa-times"></i> Batalkan Pesanan
-                                    </button>
-                                </form>
-                            @endif
+                        @if($order->status !== 'cancelled' && $order->delivery_status !== 'delivered')
+                            <form action="{{ route('orders.cancel', $order->id) }}" method="POST">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="btn btn-outline-danger w-100 fw-bold" onclick="return confirm('Yakin ingin membatalkan pesanan ini?')">
+                                    <i class="fas fa-times"></i> Batalkan Pesanan
+                                </button>
+                            </form>
                         @endif
 
-                        <a href="{{ route('orders.index') }}" class="btn btn-outline-primary btn-sm fw-bold" style="border-color: #335c67; color: #335c67;">
+                        <a href="{{ route('orders.index') }}" class="btn btn-outline-primary w-100 fw-bold" style="border-color: #335c67; color: #335c67;">
                             <i class="fas fa-arrow-left"></i> Kembali
                         </a>
                     </div>
@@ -278,13 +255,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Back Button -->
-    <div class="mt-5 text-center">
-        <a href="{{ route('orders.index') }}" class="btn btn-outline-primary" style="border-color: #335c67; color: #335c67;">
-            <i class="fas fa-arrow-left"></i> Kembali ke Pesanan Saya
-        </a>
     </div>
 </div>
 

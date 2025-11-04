@@ -16,7 +16,7 @@
     <!-- Page Title -->
     <div class="mb-5">
         <h2 class="fw-bold" style="color: #2a4a54;">
-            <i class="fas fa-paper-plane"></i> Kirim Pesan
+            <i class="fas fa-paper-plane"></i> Contact to Admin
         </h2>
         <p class="text-muted">Hubungi admin kami dengan pesan Anda</p>
     </div>
@@ -26,74 +26,35 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header" style="background-color: #335c67; color: white; border: none;">
                     <h5 class="mb-0">
-                        <i class="fas fa-envelope"></i> Form Pesan
+                        <i class="fas fa-envelope"></i> Form Pesan ke Admin
                     </h5>
                 </div>
                 <div class="card-body p-5">
-                    <form action="{{ route('messages.store') }}" method="POST" novalidate>
+                    <form action="{{ route('messages.store') }}" method="POST">
                         @csrf
 
-                        <!-- Row 1: First Name & Last Name -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="first_name" class="form-label fw-bold">Nama Depan</label>
-                                <input type="text" class="form-control @error('first_name') is-invalid @enderror" 
-                                       id="first_name" name="first_name" value="{{ old('first_name') }}" 
-                                       placeholder="Nama depan Anda" required>
-                                @error('first_name')
-                                    <div class="invalid-feedback d-block">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                            <div class="col-md-6">
-                                <label for="last_name" class="form-label fw-bold">Nama Belakang</label>
-                                <input type="text" class="form-control @error('last_name') is-invalid @enderror" 
-                                       id="last_name" name="last_name" value="{{ old('last_name') }}" 
-                                       placeholder="Nama belakang Anda" required>
-                                @error('last_name')
-                                    <div class="invalid-feedback d-block">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <!-- Row 2: Email & Phone -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="email" class="form-label fw-bold">Email</label>
-                                <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                                       id="email" name="email" value="{{ old('email', auth()->user()->email) }}" 
-                                       placeholder="email@example.com" required>
-                                @error('email')
-                                    <div class="invalid-feedback d-block">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                            <div class="col-md-6">
-                                <label for="phone" class="form-label fw-bold">Telepon</label>
-                                <input type="tel" class="form-control @error('phone') is-invalid @enderror" 
-                                       id="phone" name="phone" value="{{ old('phone') }}" 
-                                       placeholder="+62 821-XXXX-XXXX">
-                                @error('phone')
-                                    <div class="invalid-feedback d-block">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                                <small class="text-muted d-block mt-1">Opsional</small>
+                        <!-- User Info Display -->
+                        <div class="alert alert-light border mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">Dari:</small>
+                                    <p class="mb-0 fw-bold">{{ auth()->user()->name }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Email:</small>
+                                    <p class="mb-0">{{ auth()->user()->email }}</p>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Subject -->
-                        <div class="mb-3">
-                            <label for="subject" class="form-label fw-bold">Subjek</label>
+                        <div class="mb-4">
+                            <label for="subject" class="form-label fw-bold">Subjek Pesan</label>
                             <input type="text" class="form-control @error('subject') is-invalid @enderror" 
                                    id="subject" name="subject" value="{{ old('subject') }}" 
-                                   placeholder="Subjek pesan Anda" required>
+                                   placeholder="Contoh: Pertanyaan tentang pengiriman" required>
                             @error('subject')
-                                <div class="invalid-feedback d-block">
+                                <div class="invalid-feedback">
                                     {{ $message }}
                                 </div>
                             @enderror
@@ -107,7 +68,7 @@
                                       id="message" name="message" rows="8" 
                                       placeholder="Ketikan pesan Anda di sini..." required>{{ old('message') }}</textarea>
                             @error('message')
-                                <div class="invalid-feedback d-block">
+                                <div class="invalid-feedback">
                                     {{ $message }}
                                 </div>
                             @enderror
@@ -115,7 +76,7 @@
                         </div>
 
                         <!-- Info Alert -->
-                        <div class="alert alert-info alert-sm mb-4" role="alert">
+                        <div class="alert alert-info mb-4" role="alert">
                             <i class="fas fa-info-circle"></i>
                             <small>
                                 Pesan Anda akan kami terima dan admin akan meresponnya dalam waktu 1-2 hari kerja.
@@ -181,10 +142,6 @@
     .form-control:focus, .form-select:focus {
         border-color: #335c67;
         box-shadow: 0 0 0 0.2rem rgba(51, 92, 103, 0.25);
-    }
-
-    .alert-sm {
-        padding: 0.75rem 1rem;
     }
 
     textarea.form-control {

@@ -8,11 +8,6 @@ use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     public function index()
     {
         $messages = Auth::user()->messages()->latest()->paginate(10);
@@ -31,10 +26,6 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'nullable|string|max:20',
             'subject' => 'required|string|max:255',
             'message' => 'required|string|min:10',
         ]);
@@ -91,8 +82,9 @@ class MessageController extends Controller
         ]);
 
         $message->admin_reply = $validated['admin_reply'];
-        $message->admin_id = Auth::id();
+        $message->replied_by = Auth::id();
         $message->replied_at = now();
+        $message->status = 'replied';
         $message->save();
 
         return redirect()->back()->with('success', 'Balasan berhasil dikirim kepada user.');

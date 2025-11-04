@@ -38,7 +38,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="text-muted mb-2">Total Belanja</p>
-                            <h3 class="fw-bold" style="color: #335c67; margin: 0;">Rp {{ number_format(auth()->user()->orders()->where('payment_status', 'paid')->sum('total_amount'), 0, ',', '.') }}</h3>
+                            <h3 class="fw-bold" style="color: #335c67; margin: 0;">Rp {{ number_format(auth()->user()->orders()->where('payment_status', 'paid')->sum('total_price'), 0, ',', '.') }}</h3>
                         </div>
                         <div style="font-size: 2.5rem; color: #335c67; opacity: 0.2;">
                             <i class="fas fa-money-bill-wave"></i>
@@ -54,7 +54,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="text-muted mb-2">Pesan Dikirim</p>
-                            <h3 class="fw-bold" style="color: #335c67; margin: 0;">{{ auth()->user()->orders()->where('shipping_status', 'delivered')->count() }}</h3>
+                            <h3 class="fw-bold" style="color: #335c67; margin: 0;">{{ auth()->user()->orders()->where('delivery_status', 'delivered')->count() }}</h3>
                         </div>
                         <div style="font-size: 2.5rem; color: #335c67; opacity: 0.2;">
                             <i class="fas fa-box"></i>
@@ -133,24 +133,22 @@
                                             </td>
                                             <td>
                                                 <strong style="color: #335c67;">
-                                                    Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                                                    Rp {{ number_format($order->total_price, 0, ',', '.') }}
                                                 </strong>
                                             </td>
                                             <td class="text-center">
-                                                @if($order->payment_status === 'pending')
-                                                    <span class="badge bg-warning">Pending</span>
+                                                @if($order->payment_status === 'unpaid')
+                                                    <span class="badge bg-warning">Belum Dibayar</span>
                                                 @elseif($order->payment_status === 'paid')
                                                     <span class="badge bg-success">Dibayar</span>
-                                                @else
-                                                    <span class="badge bg-danger">Batal</span>
                                                 @endif
                                             </td>
                                             <td class="text-center">
-                                                @if($order->shipping_status === 'pending')
+                                                @if($order->delivery_status === 'pending')
                                                     <span class="badge bg-secondary">Diproses</span>
-                                                @elseif($order->shipping_status === 'shipped')
+                                                @elseif($order->delivery_status === 'shipped')
                                                     <span class="badge bg-info">Dikirim</span>
-                                                @else
+                                                @elseif($order->delivery_status === 'delivered')
                                                     <span class="badge bg-success">Terima</span>
                                                 @endif
                                             </td>

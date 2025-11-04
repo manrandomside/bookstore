@@ -7,11 +7,6 @@ use Illuminate\Http\Request;
 
 class AdminUserController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     public function index()
     {
         $users = User::where('role', 'user')->latest()->get();
@@ -25,7 +20,7 @@ class AdminUserController extends Controller
         }
 
         $user->orders_count = $user->orders()->count();
-        $user->total_spent = $user->orders()->where('payment_status', 'paid')->sum('total_amount');
+        $user->total_spent = $user->orders()->where('payment_status', 'paid')->sum('total_price');
 
         return response()->json($user);
     }
