@@ -56,16 +56,8 @@
                 @forelse($bestSellerBooks as $book)
                     <div class="col">
                         <div class="card shadow-sm">
-                            @php
-                                $bookImage = strtolower(str_replace(' ', '_', $book->title));
-                                $imagePath = file_exists(public_path("books/{$bookImage}.jpg")) 
-                                    ? "/books/{$bookImage}.jpg" 
-                                    : (file_exists(public_path("books/{$bookImage}.jpeg")) 
-                                        ? "/books/{$bookImage}.jpeg" 
-                                        : null);
-                            @endphp
-                            @if($imagePath)
-                                <img src="{{ $imagePath }}" class="card-img-top" alt="{{ $book->title }}" style="width: 100%; max-height: 400px; object-fit: contain; object-position: top; padding: 10px;">
+                            @if($book->image && file_exists(public_path($book->image)))
+                                <img src="/{{ $book->image }}" class="card-img-top" alt="{{ $book->title }}" style="width: 100%; max-height: 400px; object-fit: contain; object-position: top; padding: 10px;">
                             @else
                                 <div style="width: 100%; height: 300px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-image" style="font-size: 3rem; color: #adb5bd;"></i>

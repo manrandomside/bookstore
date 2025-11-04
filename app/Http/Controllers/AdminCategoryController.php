@@ -7,15 +7,16 @@ use Illuminate\Http\Request;
 
 class AdminCategoryController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     public function index()
     {
         $categories = Category::all();
         return view('admin.categories-list', compact('categories'));
+    }
+
+    public function create()
+    {
+        // Method ini untuk handle route resource, tapi tidak dipakai karena pakai modal
+        return redirect()->route('admin.categories.index');
     }
 
     public function show(Category $category)
@@ -39,6 +40,12 @@ class AdminCategoryController extends Controller
             'success' => true,
             'message' => 'Kategori berhasil ditambahkan.'
         ]);
+    }
+
+    public function edit(Category $category)
+    {
+        // Method ini untuk handle route resource, tapi tidak dipakai karena pakai modal
+        return redirect()->route('admin.categories.index');
     }
 
     public function update(Request $request, Category $category)

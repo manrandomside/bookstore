@@ -168,6 +168,7 @@
         .footer a {
             color: rgba(255, 255, 255, 0.8);
             text-decoration: none;
+            transition: color 0.3s ease;
         }
 
         .footer a:hover {
@@ -406,8 +407,9 @@
                 <div class="col-md-4 mb-4 mb-md-0">
                     <h5 class="mb-3">Tautan</h5>
                     <ul class="list-unstyled">
-                        <li><a href="/">Beranda</a></li>
-                        <li><a href="#contact">Kontak</a></li>
+                        <li class="mb-2"><a href="/">Beranda</a></li>
+                        <li class="mb-2"><a href="{{ route('about') }}">Tim</a></li>
+                        <li><a href="{{ route('about') }}#contact">Kontak</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">

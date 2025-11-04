@@ -54,20 +54,10 @@
                                                 <strong>{{ $index + 1 }}</strong>
                                             </td>
                                             <td>
-                                                @php
-    $adminBookImage = strtolower(str_replace(' ', '_', $book->title));
-    $adminImagePath = file_exists(public_path("books/{$adminBookImage}.jpg")) 
-        ? "/books/{$adminBookImage}.jpg" 
-        : (file_exists(public_path("books/{$adminBookImage}.jpeg")) 
-            ? "/books/{$adminBookImage}.jpeg" 
-            : null);
-@endphp
-
-@if($adminImagePath)
-    <img src="{{ $adminImagePath }}"
-                                                    <img src="/books/{{ strtolower(str_replace(' ', '_', $book->title)) }}.jpg" alt="{{ $book->title }}" style="width: 40px; height: 55px; object-fit: contain;">
+                                                @if($book->image && file_exists(public_path($book->image)))
+                                                    <img src="/{{ $book->image }}" alt="{{ $book->title }}" style="width: 40px; height: 55px; object-fit: cover; border-radius: 4px;">
                                                 @else
-                                                    <div style="width: 40px; height: 55px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center;">
+                                                    <div style="width: 40px; height: 55px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
                                                         <i class="fas fa-image" style="color: #adb5bd; font-size: 0.8rem;"></i>
                                                     </div>
                                                 @endif
@@ -150,9 +140,10 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="bookForm" method="POST" novalidate>
+            <form id="bookForm" method="POST" enctype="multipart/form-data" novalidate>
                 @csrf
                 <input type="hidden" id="bookId" name="book_id">
+                <input type="hidden" id="formMethod" name="_method" value="">
                 <div class="modal-body p-4">
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -163,7 +154,7 @@
                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
                                 @endforeach
                             </select>
-                            <div class="invalid-feedback d-block" id="categoryError"></div>
+                            <div class="invalid-feedback d-block" id="category_idError"></div>
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -187,8 +178,16 @@
 
                     <div class="mb-3">
                         <label for="description" class="form-label fw-bold">Deskripsi</label>
-                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Masukkan deskripsi buku" required></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Masukkan deskripsi buku (min 20 karakter)" required></textarea>
                         <div class="invalid-feedback d-block" id="descriptionError"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="image" class="form-label fw-bold">Gambar Buku <span class="text-danger" id="imageRequired">*</span></label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/jpeg,image/jpg,image/png,image/webp">
+                        <small class="text-muted">Format: JPG, JPEG, PNG, WEBP. Max: 2MB</small>
+                        <div class="invalid-feedback d-block" id="imageError"></div>
+                        <div id="imagePreview" class="mt-2"></div>
                     </div>
 
                     <div class="row">
@@ -229,15 +228,36 @@
 </div>
 
 <script>
+function clearErrors() {
+    document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+}
+
+document.getElementById('image').addEventListener('change', function(e) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Preview" style="max-width: 200px; max-height: 200px; object-fit: contain; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">`;
+        }
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+
 function resetBookForm() {
     document.getElementById('bookForm').reset();
     document.getElementById('bookId').value = '';
+    document.getElementById('formMethod').value = '';
+    document.getElementById('imagePreview').innerHTML = '';
     document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Buku';
     document.getElementById('bookForm').action = '{{ route("admin.books.store") }}';
-    document.querySelector('input[name="_method"]')?.remove();
+    document.getElementById('imageRequired').style.display = 'inline';
+    clearErrors();
 }
 
 function editBook(bookId) {
+    clearErrors();
     fetch(`/admin/books/${bookId}`)
         .then(response => response.json())
         .then(data => {
@@ -250,50 +270,95 @@ function editBook(bookId) {
             document.getElementById('price').value = data.price;
             document.getElementById('stock').value = data.stock;
             document.getElementById('is_active').checked = data.is_active;
+            document.getElementById('formMethod').value = 'PUT';
+            
+            if (data.image) {
+                document.getElementById('imagePreview').innerHTML = `
+                    <div>
+                        <p class="text-muted mb-2">Gambar saat ini:</p>
+                        <img src="/${data.image}" alt="Current" style="max-width: 200px; max-height: 200px; object-fit: contain; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                        <p class="text-muted mt-2"><small>Upload gambar baru untuk mengganti</small></p>
+                    </div>
+                `;
+                document.getElementById('imageRequired').style.display = 'none';
+            }
             
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Buku';
-            
-            let form = document.getElementById('bookForm');
-            form.action = `/admin/books/${bookId}`;
-            
-            let methodInput = document.querySelector('input[name="_method"]');
-            if (!methodInput) {
-                methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                form.appendChild(methodInput);
-            }
-            methodInput.value = 'PUT';
+            document.getElementById('bookForm').action = `/admin/books/${bookId}`;
+        })
+        .catch(error => {
+            console.error('Error fetching book:', error);
+            alert('Gagal mengambil data buku');
         });
 }
 
 document.getElementById('bookForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    clearErrors();
     
     let form = this;
-    let formData = new FormData(form);
+    let submitBtn = form.querySelector('button[type="submit"]');
+    let originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    
+    // Build FormData manually for better control
+    let formData = new FormData();
+    formData.append('_token', document.querySelector('input[name="_token"]').value);
+    formData.append('category_id', document.getElementById('category_id').value);
+    formData.append('isbn', document.getElementById('isbn').value);
+    formData.append('title', document.getElementById('title').value);
+    formData.append('author', document.getElementById('author').value);
+    formData.append('description', document.getElementById('description').value);
+    formData.append('price', document.getElementById('price').value);
+    formData.append('stock', document.getElementById('stock').value);
+    formData.append('is_active', document.getElementById('is_active').checked ? '1' : '0');
+    
+    // Add image if selected
+    let imageInput = document.getElementById('image');
+    if (imageInput.files && imageInput.files[0]) {
+        formData.append('image', imageInput.files[0]);
+    }
+    
+    // Add _method for PUT requests
+    let method = document.getElementById('formMethod').value;
+    if (method) {
+        formData.append('_method', method);
+    }
     
     fetch(form.action, {
         method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-        },
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
     .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        
         if (data.success) {
             bootstrap.Modal.getInstance(document.getElementById('bookModal')).hide();
             location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Submit error:', error);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        
+        if (error.errors) {
+            Object.keys(error.errors).forEach(key => {
+                const errorElement = document.getElementById(key + 'Error');
+                if (errorElement) {
+                    errorElement.textContent = error.errors[key][0];
+                }
+            });
         } else {
-            if (data.errors) {
-                Object.keys(data.errors).forEach(key => {
-                    const errorElement = document.getElementById(key + 'Error');
-                    if (errorElement) {
-                        errorElement.textContent = data.errors[key][0];
-                    }
-                });
-            }
+            alert('Terjadi kesalahan: ' + (error.message || 'Gagal menyimpan data'));
         }
     });
 });

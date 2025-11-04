@@ -14,7 +14,7 @@
                     </h2>
                     <p class="text-muted">Tambah, edit, dan hapus kategori buku</p>
                 </div>
-                <button type="button" class="btn fw-bold" style="background-color: #335c67; color: white;" data-bs-toggle="modal" data-bs-target="#categoryModal">
+                <button type="button" class="btn fw-bold" style="background-color: #335c67; color: white;" data-bs-toggle="modal" data-bs-target="#categoryModal" onclick="resetCategoryForm()">
                     <i class="fas fa-plus"></i> Tambah Kategori
                 </button>
             </div>
@@ -97,7 +97,7 @@
                         <p class="text-muted mb-4">
                             Mulai buat kategori baru untuk mengorganisir koleksi buku Anda.
                         </p>
-                        <button type="button" class="btn btn-lg fw-bold" style="background-color: #335c67; color: white; border: none;" data-bs-toggle="modal" data-bs-target="#categoryModal">
+                        <button type="button" class="btn btn-lg fw-bold" style="background-color: #335c67; color: white; border: none;" data-bs-toggle="modal" data-bs-target="#categoryModal" onclick="resetCategoryForm()">
                             <i class="fas fa-plus"></i> Buat Kategori Pertama
                         </button>
                     </div>
@@ -120,6 +120,7 @@
             <form id="categoryForm" method="POST" novalidate>
                 @csrf
                 <input type="hidden" id="categoryId" name="category_id">
+                <input type="hidden" id="formMethod" name="_method" value="">
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label for="name" class="form-label fw-bold">Nama Kategori</label>
@@ -129,7 +130,7 @@
 
                     <div class="mb-3">
                         <label for="description" class="form-label fw-bold">Deskripsi</label>
-                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Masukkan deskripsi kategori" required></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Masukkan deskripsi kategori (min 10 karakter)" required></textarea>
                         <div class="invalid-feedback d-block" id="descriptionError"></div>
                     </div>
 
@@ -154,22 +155,22 @@
 </div>
 
 <script>
-// Reset form untuk tambah baru
-document.getElementById('categoryModal').addEventListener('show.bs.modal', function (e) {
-    if (!e.relatedTarget || !e.relatedTarget.onclick) {
-        // Ini adalah tombol tambah, bukan edit
-        document.getElementById('categoryForm').reset();
-        document.getElementById('categoryId').value = '';
-        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Kategori';
-        document.getElementById('categoryForm').action = '{{ route("admin.categories.store") }}';
-        document.getElementById('categoryForm').method = 'POST';
-        document.querySelector('input[name="_method"]')?.remove();
-    }
-});
+function clearErrors() {
+    document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+}
 
-// Fungsi edit kategori
+function resetCategoryForm() {
+    document.getElementById('categoryForm').reset();
+    document.getElementById('categoryId').value = '';
+    document.getElementById('formMethod').value = '';
+    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Tambah Kategori';
+    document.getElementById('categoryForm').action = '{{ route("admin.categories.store") }}';
+    clearErrors();
+}
+
 function editCategory(categoryId) {
-    // Fetch kategori data
+    clearErrors();
+    
     fetch(`/admin/categories/${categoryId}`)
         .then(response => response.json())
         .then(data => {
@@ -177,52 +178,75 @@ function editCategory(categoryId) {
             document.getElementById('name').value = data.name;
             document.getElementById('description').value = data.description;
             document.getElementById('is_active').checked = data.is_active;
+            document.getElementById('formMethod').value = 'PUT';
             
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Kategori';
-            
-            // Update form action
-            let form = document.getElementById('categoryForm');
-            form.action = `/admin/categories/${categoryId}`;
-            
-            // Add PUT method
-            let methodInput = document.querySelector('input[name="_method"]');
-            if (!methodInput) {
-                methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                form.appendChild(methodInput);
-            }
-            methodInput.value = 'PUT';
+            document.getElementById('categoryForm').action = `/admin/categories/${categoryId}`;
+        })
+        .catch(error => {
+            console.error('Error fetching category:', error);
+            alert('Gagal mengambil data kategori');
         });
 }
 
-// Submit form
 document.getElementById('categoryForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    clearErrors();
     
     let form = this;
-    let formData = new FormData(form);
+    let submitBtn = form.querySelector('button[type="submit"]');
+    let originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    
+    // Build FormData manually for better control
+    let formData = new FormData();
+    formData.append('_token', document.querySelector('input[name="_token"]').value);
+    formData.append('name', document.getElementById('name').value);
+    formData.append('description', document.getElementById('description').value);
+    formData.append('is_active', document.getElementById('is_active').checked ? '1' : '0');
+    
+    // Add _method for PUT requests
+    let method = document.getElementById('formMethod').value;
+    if (method) {
+        formData.append('_method', method);
+    }
     
     fetch(form.action, {
-        method: form.method === 'POST' ? 'POST' : 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-        },
+        method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
     .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        
         if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+            let modal = bootstrap.Modal.getInstance(document.getElementById('categoryModal'));
+            modal.hide();
             location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Submit error:', error);
+        console.log('Full error:', error);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        
+        if (error.errors) {
+            Object.keys(error.errors).forEach(key => {
+                const errorElement = document.getElementById(key + 'Error');
+                if (errorElement) {
+                    errorElement.textContent = error.errors[key][0];
+                }
+            });
         } else {
-            // Show errors
-            if (data.errors.name) {
-                document.getElementById('nameError').textContent = data.errors.name[0];
-            }
-            if (data.errors.description) {
-                document.getElementById('descriptionError').textContent = data.errors.description[0];
-            }
+            alert('Terjadi kesalahan: ' + (error.message || 'Gagal menyimpan data'));
         }
     });
 });

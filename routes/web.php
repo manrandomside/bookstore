@@ -12,7 +12,9 @@ use App\Http\Controllers\AdminOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    $bestSellerBooks = \App\Models\Book::limit(9)->get();
+    $bestSellerBooks = \App\Models\Book::where('is_active', 1)
+        ->orderBy('created_at', 'desc')
+        ->get();
     return view('pages.home', compact('bestSellerBooks'));
 })->name('home');
 
