@@ -11,83 +11,70 @@ class AdminBookController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('admin');
     }
 
     public function index()
     {
         $books = Book::with('category')->get();
-        return view('admin.books.index', compact('books'));
+        $categories = Category::where('is_active', true)->get();
+        return view('admin.books-list', compact('books', 'categories'));
     }
 
-    public function create()
+    public function show(Book $book)
     {
-        $categories = Category::where('is_active', true)->get();
-        return view('admin.books.create', compact('categories'));
+        return response()->json($book);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'title' => 'required|string|max:255|unique:books,title',
+            'description' => 'required|string|min:20',
             'author' => 'required|string|max:255',
-            'isbn' => 'required|string|unique:books',
-            'price' => 'required|numeric|min:0',
+            'isbn' => 'required|string|unique:books,isbn',
+            'price' => 'required|numeric|min:1000',
             'stock' => 'required|integer|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'is_active' => 'nullable|boolean',
         ]);
 
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('books', 'public');
-            $validated['image'] = $imagePath;
-        }
-
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->has('is_active') ? 1 : 0;
 
         Book::create($validated);
 
-        return redirect()->route('admin.books.index')->with('success', 'Buku berhasil ditambahkan.');
-    }
-
-    public function edit(Book $book)
-    {
-        $categories = Category::where('is_active', true)->get();
-        return view('admin.books.edit', compact('book', 'categories'));
+        return response()->json([
+            'success' => true,
+            'message' => 'Buku berhasil ditambahkan.'
+        ]);
     }
 
     public function update(Request $request, Book $book)
     {
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'title' => 'required|string|max:255|unique:books,title,' . $book->id,
+            'description' => 'required|string|min:20',
             'author' => 'required|string|max:255',
             'isbn' => 'required|string|unique:books,isbn,' . $book->id,
-            'price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:1000',
             'stock' => 'required|integer|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'is_active' => 'nullable|boolean',
         ]);
 
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('books', 'public');
-            $validated['image'] = $imagePath;
-        }
-
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->has('is_active') ? 1 : 0;
 
         $book->update($validated);
 
-        return redirect()->route('admin.books.index')->with('success', 'Buku berhasil diperbarui.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Buku berhasil diperbarui.'
+        ]);
     }
 
     public function destroy(Book $book)
     {
         $book->delete();
 
-        return redirect()->route('admin.books.index')->with('success', 'Buku berhasil dihapus.');
+        return redirect()->back()->with('success', 'Buku berhasil dihapus.');
     }
 }

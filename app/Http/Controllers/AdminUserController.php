@@ -10,27 +10,29 @@ class AdminUserController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('admin');
     }
 
     public function index()
     {
-        $users = User::where('role', 'user')->get();
-        return view('admin.users.index', compact('users'));
+        $users = User::where('role', 'user')->latest()->get();
+        return view('admin.users-list', compact('users'));
     }
 
     public function show(User $user)
     {
-        if ($user->isAdmin()) {
+        if ($user->role === 'admin') {
             abort(403);
         }
 
-        return view('admin.users.show', compact('user'));
+        $user->orders_count = $user->orders()->count();
+        $user->total_spent = $user->orders()->where('payment_status', 'paid')->sum('total_amount');
+
+        return response()->json($user);
     }
 
     public function toggleActive(User $user)
     {
-        if ($user->isAdmin()) {
+        if ($user->role === 'admin') {
             abort(403);
         }
 
@@ -38,17 +40,6 @@ class AdminUserController extends Controller
         $user->save();
 
         $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil ' . $status . '.');
-    }
-
-    public function destroy(User $user)
-    {
-        if ($user->isAdmin()) {
-            abort(403);
-        }
-
-        $user->delete();
-
-        return redirect()->route('admin.users.index')->with('success', 'User berhasil dihapus.');
+        return redirect()->back()->with('success', 'User berhasil ' . $status . '.');
     }
 }

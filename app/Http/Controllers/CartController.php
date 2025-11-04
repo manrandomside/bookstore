@@ -12,36 +12,64 @@ class CartController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('user');
     }
 
     public function index()
     {
         $user = Auth::user();
         $cartItems = $user->cartItems()->with('book')->get();
-        $totalPrice = $cartItems->sum(function ($item) {
-            return $item->getSubtotal();
+        
+        $subtotal = $cartItems->sum(function ($item) {
+            return $item->book->price * $item->quantity;
         });
+        
+        $shipping = 25000;
+        $total = $subtotal + $shipping;
 
-        return view('cart.index', compact('cartItems', 'totalPrice'));
+        return view('user.cart', compact('cartItems', 'subtotal', 'shipping', 'total'));
     }
 
     public function add(Request $request, Book $book)
     {
-        if ($book->isOutOfStock()) {
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+
+        if ($book->stock <= 0) {
             return redirect()->back()->with('error', 'Buku tidak tersedia.');
+        }
+
+        if (!$book->is_active) {
+            return redirect()->back()->with('error', 'Buku tidak dapat ditambahkan.');
         }
 
         $user = Auth::user();
         $cartItem = $user->cartItems()->where('book_id', $book->id)->first();
 
+        $quantity = (int)($request->quantity ?? 1);
+
+        if ($quantity <= 0) {
+            return redirect()->back()->with('error', 'Jumlah tidak valid.');
+        }
+
         if ($cartItem) {
-            $cartItem->incrementQuantity($request->quantity ?? 1);
+            $newQuantity = $cartItem->quantity + $quantity;
+            
+            if ($newQuantity > $book->stock) {
+                return redirect()->back()->with('error', 'Jumlah melebihi stok yang tersedia.');
+            }
+            
+            $cartItem->quantity = $newQuantity;
+            $cartItem->save();
         } else {
+            if ($quantity > $book->stock) {
+                return redirect()->back()->with('error', 'Jumlah melebihi stok yang tersedia.');
+            }
+
             CartItem::create([
                 'user_id' => $user->id,
                 'book_id' => $book->id,
-                'quantity' => $request->quantity ?? 1,
+                'quantity' => $quantity,
             ]);
         }
 
@@ -54,11 +82,15 @@ class CartController extends Controller
             abort(403);
         }
 
-        $quantity = $request->quantity ?? 1;
+        $quantity = (int)($request->quantity ?? 1);
 
         if ($quantity <= 0) {
             $cartItem->delete();
             return redirect()->back()->with('success', 'Buku dihapus dari keranjang.');
+        }
+
+        if ($quantity > $cartItem->book->stock) {
+            return redirect()->back()->with('error', 'Jumlah melebihi stok yang tersedia.');
         }
 
         $cartItem->quantity = $quantity;

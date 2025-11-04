@@ -13,15 +13,24 @@ class OrderController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('user');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $user = Auth::user();
-        $orders = $user->orders()->orderBy('created_at', 'desc')->get();
+        $query = Auth::user()->orders();
+        
+        if ($request->filled('status')) {
+            $status = $request->status;
+            if (in_array($status, ['pending', 'paid', 'cancelled'])) {
+                $query->where('payment_status', $status);
+            } elseif (in_array($status, ['pending', 'shipped', 'delivered'])) {
+                $query->where('shipping_status', $status);
+            }
+        }
 
-        return view('orders.index', compact('orders'));
+        $orders = $query->latest()->paginate(10);
+
+        return view('user.orders-list', compact('orders'));
     }
 
     public function show(Order $order)
@@ -32,7 +41,7 @@ class OrderController extends Controller
 
         $orderItems = $order->orderItems()->with('book')->get();
 
-        return view('orders.show', compact('order', 'orderItems'));
+        return view('user.order-detail', compact('order', 'orderItems'));
     }
 
     public function checkout(Request $request)
@@ -45,23 +54,27 @@ class OrderController extends Controller
         }
 
         $validated = $request->validate([
-            'delivery_address' => 'required|string',
+            'delivery_address' => 'required|string|min:10',
             'payment_method' => 'required|in:transfer,cash',
         ]);
 
-        $totalPrice = $cartItems->sum(function ($item) {
-            return $item->getSubtotal();
+        $subtotal = $cartItems->sum(function ($item) {
+            return $item->book->price * $item->quantity;
         });
+
+        $shipping = 25000;
+        $totalAmount = $subtotal + $shipping;
 
         $order = Order::create([
             'user_id' => $user->id,
             'order_number' => 'ORD-' . strtoupper(Str::random(10)),
-            'total_price' => $totalPrice,
-            'status' => 'pending',
-            'payment_status' => 'unpaid',
+            'total_amount' => $totalAmount,
+            'shipping_cost' => $shipping,
+            'payment_status' => 'pending',
+            'shipping_status' => 'pending',
             'payment_method' => $validated['payment_method'],
-            'delivery_status' => 'pending',
             'delivery_address' => $validated['delivery_address'],
+            'paid_at' => null,
         ]);
 
         foreach ($cartItems as $cartItem) {
@@ -70,7 +83,6 @@ class OrderController extends Controller
                 'book_id' => $cartItem->book_id,
                 'quantity' => $cartItem->quantity,
                 'price' => $cartItem->book->price,
-                'subtotal' => $cartItem->getSubtotal(),
             ]);
 
             $cartItem->book->decrement('stock', $cartItem->quantity);
@@ -78,7 +90,7 @@ class OrderController extends Controller
 
         $user->cartItems()->delete();
 
-        return redirect()->route('orders.show', $order->id)->with('success', 'Pesanan berhasil dibuat. Lakukan pembayaran.');
+        return redirect()->route('orders.show', $order->id)->with('success', 'Pesanan berhasil dibuat. Silakan lakukan pembayaran.');
     }
 
     public function markAsPaid(Order $order)
@@ -87,8 +99,12 @@ class OrderController extends Controller
             abort(403);
         }
 
-        if ($order->isPaid()) {
+        if ($order->payment_status === 'paid') {
             return redirect()->back()->with('error', 'Pesanan sudah dibayar.');
+        }
+
+        if ($order->payment_status === 'cancelled') {
+            return redirect()->back()->with('error', 'Pesanan yang dibatalkan tidak bisa dibayar.');
         }
 
         $order->payment_status = 'paid';
@@ -104,15 +120,19 @@ class OrderController extends Controller
             abort(403);
         }
 
-        if ($order->isCancelled()) {
-            return redirect()->back()->with('error', 'Pesanan sudah dibatalkan.');
+        if ($order->payment_status === 'cancelled') {
+            return redirect()->back()->with('error', 'Pesanan sudah dibatalkan sebelumnya.');
         }
 
-        if ($order->isDelivered()) {
+        if ($order->shipping_status === 'delivered') {
+            return redirect()->back()->with('error', 'Pesanan yang sudah diterima tidak bisa dibatalkan.');
+        }
+
+        if ($order->shipping_status === 'shipped') {
             return redirect()->back()->with('error', 'Pesanan yang sudah dikirim tidak bisa dibatalkan.');
         }
 
-        $order->status = 'cancelled';
+        $order->payment_status = 'cancelled';
         $order->save();
 
         foreach ($order->orderItems as $item) {
