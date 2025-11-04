@@ -39,6 +39,25 @@ class OrderController extends Controller
         return view('user.order-detail', compact('order', 'orderItems'));
     }
 
+    public function showCheckout()
+    {
+        $user = Auth::user();
+        $cartItems = $user->cartItems()->with('book')->get();
+
+        if ($cartItems->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', 'Keranjang belanja kosong.');
+        }
+
+        $subtotal = $cartItems->sum(function ($item) {
+            return $item->book->price * $item->quantity;
+        });
+        
+        $shipping = 25000;
+        $total = $subtotal + $shipping;
+
+        return view('user.checkout', compact('cartItems', 'subtotal', 'shipping', 'total'));
+    }
+
     public function checkout(Request $request)
     {
         $user = Auth::user();
@@ -50,12 +69,14 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'delivery_address' => 'required|string|min:10',
-            'payment_method' => 'required|in:transfer,cash',
         ]);
 
-        $totalPrice = $cartItems->sum(function ($item) {
+        $subtotal = $cartItems->sum(function ($item) {
             return $item->book->price * $item->quantity;
         });
+
+        $shipping = 25000;
+        $totalPrice = $subtotal + $shipping;
 
         $order = Order::create([
             'user_id' => $user->id,
@@ -63,7 +84,7 @@ class OrderController extends Controller
             'total_price' => $totalPrice,
             'payment_status' => 'unpaid',
             'delivery_status' => 'pending',
-            'payment_method' => $validated['payment_method'],
+            'payment_method' => 'shopeepay',
             'delivery_address' => $validated['delivery_address'],
             'paid_at' => null,
         ]);
@@ -94,7 +115,7 @@ class OrderController extends Controller
         }
 
         if ($order->payment_status === 'paid') {
-            return redirect()->back()->with('error', 'Pesanan sudah dibayar.');
+            return redirect()->back()->with('info', 'Pesanan sudah dibayar.');
         }
 
         $order->payment_status = 'paid';
@@ -110,25 +131,16 @@ class OrderController extends Controller
             abort(403);
         }
 
-        if ($order->payment_status === 'paid') {
-            return redirect()->back()->with('error', 'Pesanan yang sudah dibayar tidak bisa dibatalkan.');
-        }
-
         if ($order->delivery_status === 'delivered') {
-            return redirect()->back()->with('error', 'Pesanan yang sudah diterima tidak bisa dibatalkan.');
+            return redirect()->back()->with('error', 'Pesanan yang sudah dikirim tidak dapat dibatalkan.');
         }
-
-        if ($order->delivery_status === 'shipped') {
-            return redirect()->back()->with('error', 'Pesanan yang sudah dikirim tidak bisa dibatalkan.');
-        }
-
-        $order->status = 'cancelled';
-        $order->save();
 
         foreach ($order->orderItems as $item) {
             $item->book->increment('stock', $item->quantity);
         }
 
-        return redirect()->back()->with('success', 'Pesanan berhasil dibatalkan.');
+        $order->delete();
+
+        return redirect()->route('orders.index')->with('success', 'Pesanan berhasil dibatalkan.');
     }
 }

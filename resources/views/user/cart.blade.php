@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="container py-5">
-    <!-- Page Title -->
     <div class="mb-5">
         <h2 class="fw-bold" style="color: #2a4a54;">
             <i class="fas fa-shopping-cart"></i> Keranjang Belanja
@@ -12,9 +11,22 @@
         <p class="text-muted">Periksa dan kelola item di keranjang Anda</p>
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @if($cartItems->count() > 0)
         <div class="row">
-            <!-- Cart Items -->
             <div class="col-lg-8 mb-4 mb-lg-0">
                 <div class="card shadow-sm border-0">
                     <div class="card-header" style="background-color: #335c67; color: white; border: none;">
@@ -40,62 +52,55 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     @php
-    $cartBookImage = strtolower(str_replace(' ', '_', $item->book->title));
-    $cartImagePath = file_exists(public_path("books/{$cartBookImage}.jpg")) 
-        ? "/books/{$cartBookImage}.jpg" 
-        : (file_exists(public_path("books/{$cartBookImage}.jpeg")) 
-            ? "/books/{$cartBookImage}.jpeg" 
-            : null);
-@endphp
-
-@if($cartImagePath)
-    <img src="{{ $cartImagePath }}"
-                                                        <img src="/books/{{ strtolower(str_replace(' ', '_', $item->book->title)) }}.jpg" alt="{{ $item->book->title }}" style="width: 50px; height: 70px; object-fit: contain; margin-right: 15px; background-color: #f8f9fa; padding: 3px;">
-                                                    @else
-                                                        <div style="width: 50px; height: 70px; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
-                                                            <i class="fas fa-book" style="color: #adb5bd;"></i>
-                                                        </div>
-                                                    @endif
+                                                        $cartBookImage = strtolower(str_replace(' ', '_', $item->book->title));
+                                                        $cartImagePath = file_exists(public_path("books/{$cartBookImage}.jpg")) 
+                                                            ? "/books/{$cartBookImage}.jpg" 
+                                                            : (file_exists(public_path("books/{$cartBookImage}.jpeg")) 
+                                                                ? "/books/{$cartBookImage}.jpeg" 
+                                                                : (file_exists(public_path("books/{$cartBookImage}.png")) 
+                                                                    ? "/books/{$cartBookImage}.png" 
+                                                                    : "/books/default.jpg"));
+                                                    @endphp
+                                                    <img src="{{ $cartImagePath }}" alt="{{ $item->book->title }}" class="me-3" style="width: 60px; height: 90px; object-fit: cover; border-radius: 4px;">
                                                     <div>
-                                                        <h6 class="mb-1" style="color: #2a4a54;">
-                                                            <a href="{{ route('books.show', $item->book->id) }}" style="text-decoration: none; color: inherit;">
-                                                                {{ $item->book->title }}
-                                                            </a>
-                                                        </h6>
+                                                        <strong style="color: #2a4a54;">{{ $item->book->title }}</strong>
+                                                        <br>
                                                         <small class="text-muted">{{ $item->book->author }}</small>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="text-center">
-                                                <strong style="color: #335c67;">
+                                            <td class="text-center align-middle">
+                                                <span style="color: #335c67; font-weight: 600;">
                                                     Rp {{ number_format($item->book->price, 0, ',', '.') }}
-                                                </strong>
+                                                </span>
                                             </td>
-                                            <td class="text-center">
-                                                <form action="{{ route('cart.update', $item->id) }}" method="POST" class="d-inline-flex">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <div class="input-group input-group-sm" style="width: 100px;">
-                                                        <button type="button" class="btn btn-outline-secondary" onclick="decreaseQty(this)">
-                                                            <i class="fas fa-minus"></i>
-                                                        </button>
-                                                        <input type="number" class="form-control text-center" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $item->book->stock }}" onchange="this.form.submit()">
-                                                        <button type="button" class="btn btn-outline-secondary" onclick="increaseQty(this)">
-                                                            <i class="fas fa-plus"></i>
-                                                        </button>
-                                                    </div>
-                                                </form>
+                                            <td class="text-center align-middle">
+                                                <div class="d-flex justify-content-center align-items-center">
+                                                    <form action="{{ route('cart.update', $item->id) }}" method="POST" style="display: inline;">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <input type="hidden" name="quantity" value="{{ $item->quantity - 1 }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" style="width: 30px; height: 30px; padding: 0;">-</button>
+                                                    </form>
+                                                    <input type="text" value="{{ $item->quantity }}" readonly class="form-control form-control-sm text-center mx-2" style="width: 50px;">
+                                                    <form action="{{ route('cart.update', $item->id) }}" method="POST" style="display: inline;">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <input type="hidden" name="quantity" value="{{ $item->quantity + 1 }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" style="width: 30px; height: 30px; padding: 0;">+</button>
+                                                    </form>
+                                                </div>
                                             </td>
-                                            <td class="text-end">
+                                            <td class="text-end align-middle">
                                                 <strong style="color: #335c67;">
                                                     Rp {{ number_format($item->book->price * $item->quantity, 0, ',', '.') }}
                                                 </strong>
                                             </td>
-                                            <td class="text-center">
-                                                <form action="{{ route('cart.remove', $item->id) }}" method="POST" style="display: inline;">
+                                            <td class="text-center align-middle">
+                                                <form action="{{ route('cart.remove', $item->id) }}" method="POST" onsubmit="return confirm('Hapus item ini dari keranjang?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hapus item ini dari keranjang?')">
+                                                    <button type="submit" class="btn btn-sm btn-danger">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
@@ -105,26 +110,21 @@
                                 </tbody>
                             </table>
                         </div>
-
-                        <div class="p-3 border-top d-flex justify-content-between align-items-center">
-                            <form action="{{ route('cart.clear') }}" method="POST">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus semua item dari keranjang?')">
-                                    <i class="fas fa-trash-alt"></i> Kosongkan Keranjang
-                                </button>
-                            </form>
-                            <a href="{{ route('books.index') }}" class="btn btn-sm btn-outline-primary" style="border-color: #335c67; color: #335c67;">
-                                <i class="fas fa-shopping-bag"></i> Lanjut Belanja
-                            </a>
-                        </div>
+                    </div>
+                    <div class="card-footer" style="background-color: #f8f9fa;">
+                        <form action="{{ route('cart.clear') }}" method="POST" onsubmit="return confirm('Kosongkan semua item di keranjang?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-trash-alt"></i> Kosongkan Keranjang
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
 
-            <!-- Order Summary -->
             <div class="col-lg-4">
-                <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                <div class="card shadow-sm border-0">
                     <div class="card-header" style="background-color: #335c67; color: white; border: none;">
                         <h5 class="mb-0">
                             <i class="fas fa-receipt"></i> Ringkasan Pesanan
@@ -134,7 +134,9 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Total Buku:</span>
-                                <strong>{{ $cartItems->sum('quantity') }} item</strong>
+                                <strong style="color: #2a4a54;">
+                                    {{ $cartItems->count() }} item
+                                </strong>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Subtotal:</span>
@@ -163,12 +165,9 @@
                             </small>
                         </div>
 
-                        <form action="{{ route('orders.checkout') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn w-100 fw-bold py-3" style="background-color: #335c67; color: white; border: none; font-size: 1.1rem;">
-                                <i class="fas fa-credit-card"></i> Lanjut ke Checkout
-                            </button>
-                        </form>
+                        <a href="{{ route('checkout.show') }}" class="btn w-100 fw-bold py-3" style="background-color: #335c67; color: white; border: none; font-size: 1.1rem;">
+                            <i class="fas fa-credit-card"></i> Lanjut ke Checkout
+                        </a>
 
                         <p class="text-center text-muted small mt-3 mb-0">
                             Dengan melanjutkan, Anda setuju dengan <a href="#" style="color: #335c67; text-decoration: none;">Syarat & Ketentuan</a>
@@ -178,7 +177,6 @@
             </div>
         </div>
     @else
-        <!-- Empty Cart -->
         <div class="row">
             <div class="col-md-8 mx-auto">
                 <div class="card shadow-sm border-0 text-center py-5">
@@ -188,8 +186,8 @@
                         <p class="text-muted mb-4">
                             Belum ada buku di keranjang Anda. Mulai belanja sekarang!
                         </p>
-                        <a href="{{ route('books.index') }}" class="btn btn-lg fw-bold" style="background-color: #335c67; color: white; border: none;">
-                            <i class="fas fa-shopping-bag"></i> Jelajahi Koleksi Buku
+                        <a href="{{ route('books.index') }}" class="btn btn-lg" style="background-color: #335c67; color: white;">
+                            <i class="fas fa-book"></i> Jelajahi Buku
                         </a>
                     </div>
                 </div>
@@ -197,40 +195,4 @@
         </div>
     @endif
 </div>
-
-<script>
-function increaseQty(btn) {
-    const input = btn.parentElement.querySelector('input[type="number"]');
-    const max = parseInt(input.getAttribute('max'));
-    if (parseInt(input.value) < max) {
-        input.value = parseInt(input.value) + 1;
-        input.onchange();
-    }
-}
-
-function decreaseQty(btn) {
-    const input = btn.parentElement.querySelector('input[type="number"]');
-    if (parseInt(input.value) > 1) {
-        input.value = parseInt(input.value) - 1;
-        input.onchange();
-    }
-}
-</script>
-
-<style>
-    .alert-sm {
-        padding: 0.5rem 0.75rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .input-group-sm .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    .input-group-sm input {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-</style>
 @endsection

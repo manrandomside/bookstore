@@ -262,10 +262,11 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('admin.categories.index') }}">Kategori</a>
                             </li>
-                            <!-- Menghilangkan menu Buku -->
-                            <!-- Menghilangkan menu Tentang -->
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('admin.users.index') }}">User</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('admin.orders.index') }}">Pesanan</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('admin.messages.index') }}">Pesan</a>
@@ -274,7 +275,6 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('user.dashboard') }}">Home</a>
                             </li>
-                            <!-- Menghilangkan menu Buku -->
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('cart.index') }}">Keranjang</a>
                             </li>
@@ -284,7 +284,6 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('messages.index') }}">Pesan</a>
                             </li>
-                            <!-- Menghilangkan menu Tentang -->
                         @endif
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
@@ -302,8 +301,6 @@
                             </ul>
                         </li>
                     @else
-                        <!-- Menghilangkan menu Buku -->
-                        <!-- Menghilangkan menu Tentang -->
                         <li class="nav-item">
                             <a href="{{ route('login') }}" class="btn btn-outline-primary btn-sm btn-login">Login</a>
                         </li>
@@ -333,11 +330,16 @@
                             Kategori
                         </a>
                     </li>
-                    <!-- Menghilangkan menu Buku di sidebar admin -->
                     <li>
                         <a href="{{ route('admin.users.index') }}" class="{{ Route::is('admin.users.*') ? 'active' : '' }}">
                             <i class="fas fa-users"></i>
                             User
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.orders.index') }}" class="{{ Route::is('admin.orders.*') ? 'active' : '' }}">
+                            <i class="fas fa-shopping-bag"></i>
+                            Pesanan
                         </a>
                     </li>
                     <li>

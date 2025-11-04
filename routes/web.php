@@ -8,6 +8,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminBookController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AdminOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -36,9 +37,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/cart/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
     Route::delete('/cart/clear-all', [CartController::class, 'clear'])->name('cart.clear');
 
+    Route::get('/checkout', [OrderController::class, 'showCheckout'])->name('checkout.show');
+    Route::post('/checkout', [OrderController::class, 'checkout'])->name('orders.checkout');
+    
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
-    Route::post('/checkout', [OrderController::class, 'checkout'])->name('orders.checkout');
     Route::put('/orders/{order}/paid', [OrderController::class, 'markAsPaid'])->name('orders.paid');
     Route::put('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
 
@@ -68,6 +71,12 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::resource('books', AdminBookController::class, ['as' => 'admin']);
     Route::resource('users', AdminUserController::class, ['as' => 'admin']);
     Route::put('/users/{user}/toggle', [AdminUserController::class, 'toggleActive'])->name('admin.users.toggle');
+    
+    Route::get('/orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+    Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('admin.orders.show');
+    Route::put('/orders/{order}/payment', [AdminOrderController::class, 'updatePaymentStatus'])->name('admin.orders.payment');
+    Route::put('/orders/{order}/delivery', [AdminOrderController::class, 'updateDeliveryStatus'])->name('admin.orders.delivery');
+    
     Route::get('/messages', [MessageController::class, 'indexAdmin'])->name('admin.messages.index');
     Route::get('/messages/{message}', [MessageController::class, 'showAdmin'])->name('admin.messages.show');
     Route::post('/messages/{message}/reply', [MessageController::class, 'replyAdmin'])->name('admin.messages.reply');
