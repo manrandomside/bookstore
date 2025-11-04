@@ -220,6 +220,30 @@
             color: var(--dark-color);
         }
 
+        .search-form {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-form .form-control {
+            border-right: none;
+            font-size: 0.95rem;
+        }
+
+        .search-form .btn-search {
+            border-left: none;
+            background-color: white;
+            border-color: #ddd;
+            color: var(--primary-color);
+        }
+
+        .search-form .btn-search:hover {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -236,6 +260,11 @@
             .navbar-collapse {
                 background-color: white;
                 border-top: 1px solid var(--primary-color);
+            }
+
+            .search-form {
+                max-width: 100%;
+                margin-top: 10px;
             }
         }
     </style>
@@ -254,6 +283,16 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                @unless(Route::is('login') || Route::is('register'))
+                    <form action="{{ route('books.index') }}" method="GET" class="d-flex search-form">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control" placeholder="Cari judul, penulis, atau ISBN..." value="{{ request('search') }}">
+                            <button class="btn btn-search" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                @endunless
                 <ul class="navbar-nav ms-auto">
                     @auth
                         @if(auth()->user()->role === 'admin')
